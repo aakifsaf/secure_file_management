@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -7,7 +8,7 @@ const Register = () => {
     username: '',
     email: '',
     password: '',
-    confirmPassword: '',
+    confirm_password: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +26,7 @@ const Register = () => {
     setLoading(true);
     
     // Basic validation
-    if (formData.password !== formData.confirmPassword) {
+    if (formData.password !== formData.confirm_password) {
       setError('Passwords do not match');
       setLoading(false);
       return;
@@ -38,24 +39,14 @@ const Register = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/register/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+      const response = await axios.post('http://localhost:8000/api/register/', formData);
 
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 201) {
+        const data = await response.data;
         localStorage.setItem('token', data.token);
         navigate('/dashboard');
       } else {
-        const errorData = await response.json();
+        const errorData = await response.data;
         setError(errorData.message || 'Registration failed. Please try again.');
       }
     } catch (err) {
@@ -143,15 +134,15 @@ const Register = () => {
                 </div>
 
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="confirm_password" className="block text-sm font-medium text-gray-700 mb-2">
                     Confirm Password
                   </label>
                   <input
                     type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
+                    id="confirm_password"
+                    name="confirm_password"
                     required
-                    value={formData.confirmPassword}
+                    value={formData.confirm_password}
                     onChange={handleChange}
                     className="appearance-none rounded-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
                     placeholder="Confirm your password"

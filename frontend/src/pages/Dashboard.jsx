@@ -9,14 +9,19 @@ const Dashboard = () => {
   const token = localStorage.getItem('token');
 
   useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
     fetchFiles();
-  }, []);
+  }, [token, navigate]);
 
   const fetchFiles = async () => {
     try {
+      console.log("token:",token);
       const response = await axios.get('http://localhost:8000/api/files/', {
         headers: {
-          'Authorization': `Token ${token}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
       setFiles(response.data);
@@ -29,62 +34,57 @@ const Dashboard = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const response = await axios.post('http://localhost:8000/api/files/upload/', formData, {
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+        const formData = new FormData();
+        formData.append('file', file);
 
-      if (response.status === 200) {
-        fetchFiles();
-      }
+        const response = await axios.post('http://localhost:8000/api/upload/', formData, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
+        if (response.status === 201) {
+            fetchFiles();
+        }
     } catch (error) {
-      console.error('Error uploading file:', error);
+        console.error('Error uploading file:', error);
+        alert('Error uploading file. Please try again.');
     }
-  };
+};
 
-  const handleDownload = async (fileId) => {
-    try {
-      const response = await axios.get(`http://localhost:8000/api/files/${fileId}/download/`, {
-        headers: {
-          'Authorization': `Token ${token}`,
-        },
-        responseType: 'blob',
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+const handleDownload = async (file_id) => {
+  try {
+      const response = await axios.post('http://localhost:8000/api/download/', 
+          {
+              file_id: file_id,
+          },
+          {
+              headers: {
+                  'Authorization': `Bearer ${token}`,
+              },
+              responseType: 'blob',
+          }
+      );
+
+      if (!response.data) {
+          throw new Error('No file data received');
+      }
+
+      const url = window.URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'encrypted_file');
+      link.setAttribute('download', `decrypted_${file_id}`);  // Use a safe filename
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+  } catch (error) {
       console.error('Error downloading file:', error);
-    }
-  };
-
-  const handleView = async (fileId) => {
-    try {
-      const response = await axios.get(`http://localhost:8000/api/files/${fileId}/view/`, {
-        headers: {
-          'Authorization': `Token ${token}`,
-        },
-        responseType: 'blob',
-      });
-      
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      window.open(url);
-    } catch (error) {
-      console.error('Error viewing file:', error);
-    }
-  };
+      alert(error.response?.data?.error || 'Error downloading file. Please try again.');
+  }
+};
 
   return (
     <div className="h-screen w-screen bg-gradient-to-br from-gray-100 to-gray-50 overflow-hidden">
@@ -155,12 +155,12 @@ const Dashboard = () => {
                                 </svg>
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{file.name}</div>
+                                <div className="text-sm font-medium text-gray-900">{file.original_file_name}</div>
                               </div>
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">{(file.size / 1024).toFixed(2)} KB</div>
+                            <div className="text-sm text-gray-900">{(file.file_size / 1024).toFixed(2)} KB</div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button
@@ -169,12 +169,6 @@ const Dashboard = () => {
                             >
                               Download
                             </button>
-                            <button
-                              onClick={() => handleView(file.id)}
-                              className="text-indigo-600 hover:text-indigo-900"
-                            >
-                              View
-                            </button>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
@@ -182,7 +176,7 @@ const Dashboard = () => {
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(file.modified_at).toLocaleDateString()}
+                            {new Date(file.uploaded_at).toLocaleDateString()}
                           </td>
                         </tr>
                       ))}

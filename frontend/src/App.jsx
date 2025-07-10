@@ -6,8 +6,9 @@ import Dashboard from './pages/Dashboard';
 
 // Private route component
 const PrivateRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('token');
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  const token = localStorage.getItem('token');
+  
+  return token ? children : <Navigate to="/login" replace />;
 };
 
 function App() {
@@ -17,15 +18,14 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          {/* <Route
+          <Route
             path="/dashboard"
             element={
               <PrivateRoute>
                 <Dashboard />
               </PrivateRoute>
             }
-          /> */}
-          <Route path="/dashboard" element={<Dashboard />} />
+          />
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>

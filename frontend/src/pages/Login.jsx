@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -23,17 +24,18 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8000/api/auth/login/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+      const response = await axios.post('http://localhost:8000/api/token/', 
+        {
+          username: formData.username,
+          password: formData.password,
+        }
+      );
+      console.log(response.data);
 
-      if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('token', data.token);
+      if (response.status === 200) {
+        const data = response.data;
+        localStorage.setItem('token', data.access);
+
         navigate('/dashboard');
       } else {
         setError('Invalid credentials');
